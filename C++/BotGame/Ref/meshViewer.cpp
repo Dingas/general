@@ -1,0 +1,1194 @@
+#include <stdio.h>
+#include <vector>
+#include <windows.h>
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+#include <math.h>
+#include <string.h>
+#include "surfaceModeller.h"
+#include "subdivcurve.h"
+
+
+GLdouble worldLeft = -12;
+GLdouble worldRight = 12;
+GLdouble worldBottom = -9;
+GLdouble worldTop = 9;
+GLdouble worldCenterX = 0.0;
+GLdouble worldCenterY = 0.0;
+GLdouble wvLeft = -12;
+GLdouble wvRight = 12;
+GLdouble wvBottom = -9;
+GLdouble wvTop = 9;
+
+GLint glutWindowWidth = 800;
+GLint glutWindowHeight = 600;
+GLint viewportWidth = glutWindowWidth;
+GLint viewportHeight = glutWindowHeight;
+
+
+////////--
+GLuint vao;
+GLuint vboVertices;
+GLuint vboNormals;
+GLuint vboIndices;
+bool vboInitialized = false;
+
+void exportMeshToOBJ(const char* filename);
+bool importMeshFromOBJ(const char* filename);
+
+boolean qarrayAllocated = false;
+
+///
+struct OBJVertex {
+	GLdouble x, y, z;
+	GLdouble nx, ny, nz;
+};
+
+std::vector<OBJVertex> objVertices;
+std::vector<int> objFaces;
+///
+
+
+///////--
+
+// screen window identifiers
+int window2D, window3D;
+
+int window3DSizeX = 800, window3DSizeY = 600;
+GLdouble aspect = (GLdouble)window3DSizeX / window3DSizeY;
+
+
+
+bool importMeshFromOBJ(const char* filename) {
+	FILE* file;
+	errno_t err = fopen_s(&file, filename, "r");
+	if (err != 0 || !file) {
+		printf("Error: Could not open file %s\n", filename);
+		return false;
+	}
+
+	char line[256];
+	int vertexCount = 0;
+	int faceCount = 0;
+
+	while (fgets(line, sizeof(line), file)) {
+		if (line[0] == 'v' && line[1] == ' ') {
+			OBJVertex v;
+			if (sscanf_s(line, "v %lf %lf %lf", &v.x, &v.y, &v.z) == 3) {
+				objVertices.push_back(v);
+				vertexCount++;
+			}
+		}
+		else if (line[0] == 'v' && line[1] == 'n') {
+			if (vertexCount > 0) {
+				if (sscanf_s(line, "vn %lf %lf %lf",
+					&objVertices.back().nx,
+					&objVertices.back().ny,
+					&objVertices.back().nz) == 3) {
+					// Normal loaded successfully
+				}
+			}
+		}
+		else if (line[0] == 'f') {
+			int v1, v2, v3, v4, n1, n2, n3, n4;
+			if (sscanf_s(line, "f %d//%d %d//%d %d//%d %d//%d",
+				&v1, &n1, &v2, &n2, &v3, &n3, &v4, &n4) == 8) {
+				// Convert to 0-based indices
+				objFaces.push_back(v1 - 1);
+				objFaces.push_back(v2 - 1);
+				objFaces.push_back(v3 - 1);
+				objFaces.push_back(v4 - 1);
+				faceCount++;
+			}
+		}
+	}
+
+	fclose(file);
+	printf("Successfully loaded %d vertices and %d faces from %s\n",
+		vertexCount, faceCount, filename);
+	return (vertexCount > 0 && faceCount > 0);
+}
+
+int main(int argc, char* argv[])
+{
+	glutInit(&argc, (char**)argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+	glutInitWindowSize(glutWindowWidth, glutWindowHeight);
+	glutInitWindowPosition(50, 100);
+
+	// The 2D Window
+	window2D = glutCreateWindow("Profile Curve");
+	glutDisplayFunc(display2D);
+	glutReshapeFunc(reshape2D);
+	// Initialize the 2D profile curve system
+	init2DCurveWindow();
+	// A few input handlers
+	glutMouseFunc(mouseButtonHandler2D);
+	glutMotionFunc(mouseMotionHandler2D);
+	glutPassiveMotionFunc(mouseHoverHandler2D);
+	glutMouseWheelFunc(mouseScrollWheelHandler2D);
+	glutSpecialFunc(specialKeyHandler2D);
+	glutKeyboardFunc(keyboardHandler2D);
+
+	// Add error checking for the file load
+    if (!importMeshFromOBJ("../511_A2/exported_mesh.obj")) {  // Adjust path as needed
+        printf("Failed to load mesh file!\n");
+        return 1;
+    }
+    
+    printf("Loaded %zu vertices and %zu faces\n", objVertices.size(), objFaces.size() / 4);
+    
+
+	// The 3D Window
+	window3D = glutCreateWindow("Mesh Viewer");
+	glutPositionWindow(900, 100);
+	glutDisplayFunc(display3D);
+	glutReshapeFunc(reshape3D);
+	glutMouseFunc(mouseButtonHandler3D);
+	glutMouseWheelFunc(mouseScrollWheelHandler3D);
+	glutMotionFunc(mouseMotionHandler3D);
+	glutKeyboardFunc(keyboardHandler3D);
+	// Initialize the 3D system
+	init3DSurfaceWindow();
+
+	// Annnd... ACTION!!
+	glutMainLoop();
+
+	return 0;
+}
+
+/************************************************************************************
+ *
+ *
+ * 2D Window and Profile Curve Code
+ *
+ * Fill in the code in the empty functions
+ ************************************************************************************/
+
+ // The profile curve is a subdivision curve
+SubdivisionCurve subcurve;
+
+int hoveredCtlPt = -1;
+int currentCurvePoint = 0;
+
+// Use little circles to draw subdivision curve control points
+Circle circles[MAXCONTROLPOINTS];
+int numCirclePoints = 30;
+double circleRadius = 0.2;
+
+
+void init2DCurveWindow()
+{
+	glLineWidth(3.0);
+	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	glClearColor(0.4F, 0.4F, 0.4F, 0.0F);
+	initSubdivisionCurve();
+	initControlPointCircles();
+}
+
+void display2D()
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(wvLeft, wvRight, wvBottom, wvTop);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	draw2DScene();
+	glutSwapBuffers();
+}
+
+
+void draw2DScene()
+{
+	drawAxes();
+	drawSubdivisionCurve();
+	drawControlPoints();
+}
+
+void drawAxes()
+{
+	glPushMatrix();
+	glColor3f(1.0, 0.0, 0);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(0, 8.0, 0);
+	glVertex3f(0, -8.0, 0);
+	glEnd();
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(-8, 0.0, 0);
+	glVertex3f(8, 0.0, 0);
+	glEnd();
+	glPopMatrix();
+}
+
+void drawSubdivisionCurve()
+{
+	// Subdivide the given curve
+	computeSubdivisionCurve(&subcurve);
+	glColor3f(0.0, 1.0, 0.0);
+	glPushMatrix();
+	glBegin(GL_LINE_STRIP);
+	for (int i = 0; i < subcurve.numCurvePoints; i++)
+	{
+		glVertex3f(subcurve.curvePoints[i].x, subcurve.curvePoints[i].y, 0.0);
+	}
+	glEnd();
+	glPopMatrix();
+}
+
+void drawControlPoints()
+{
+	int i, j;
+	for (i = 0; i < subcurve.numControlPoints; i++) {
+		glPushMatrix();
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glTranslatef(circles[i].circleCenter.x, circles[i].circleCenter.y, 0);
+		// for the hoveredCtlPt, draw an outline and change its color
+		if (i == hoveredCtlPt)
+		{
+			// outline
+			glColor3f(0.0, 1.0, 0.0);
+			glBegin(GL_LINE_LOOP);
+			for (j = 0; j < numCirclePoints; j++) {
+				glVertex3f(circles[i].circlePoints[j].x, circles[i].circlePoints[j].y, 0);
+			}
+			glEnd();
+			// color change
+			glColor3f(0.5, 0.0, 1.0);
+		}
+		glBegin(GL_LINE_LOOP);
+		for (j = 0; j < numCirclePoints; j++) {
+			glVertex3f(circles[i].circlePoints[j].x, circles[i].circlePoints[j].y, 0);
+		}
+		glEnd();
+		glPopMatrix();
+	}
+}
+
+void initSubdivisionCurve() {
+	// Initialize 5 control points of the subdivision curve
+
+	GLdouble x, y;
+
+	x = 2 * cos(M_PI * 0.5);
+	y = 2 * sin(M_PI * 0.5);
+	subcurve.controlPoints[0].x = x;
+	subcurve.controlPoints[0].y = y;
+
+	x = 2 * cos(M_PI * 0.25);
+	y = 2 * sin(M_PI * 0.25);
+	subcurve.controlPoints[1].x = x;
+	subcurve.controlPoints[1].y = y;
+
+	x = 2 * cos(M_PI * 0.0);
+	y = 2 * sin(M_PI * 0.0);
+	subcurve.controlPoints[2].x = x;
+	subcurve.controlPoints[2].y = y;
+
+	x = 2 * cos(-M_PI * 0.25);
+	y = 2 * sin(-M_PI * 0.25);
+	subcurve.controlPoints[3].x = x;
+	subcurve.controlPoints[3].y = y;
+
+	x = 2 * cos(-M_PI * 0.5);
+	y = 2 * sin(-M_PI * 0.5);
+	subcurve.controlPoints[4].x = x;
+	subcurve.controlPoints[4].y = y;
+
+	subcurve.numControlPoints = 5;
+	subcurve.subdivisionSteps = 3;
+}
+
+void initControlPointCircles()
+{
+	int num = subcurve.numControlPoints;
+	for (int i = 0; i < num; i++) {
+		constructCircle(circleRadius, numCirclePoints, circles[i].circlePoints);
+		circles[i].circleCenter = subcurve.controlPoints[i];
+	}
+}
+
+void screenToWorldCoordinates(int xScreen, int yScreen, GLdouble* xw, GLdouble* yw)
+{
+	GLdouble xView, yView;
+	screenToCameraCoordinates(xScreen, yScreen, &xView, &yView);
+	cameraToWorldCoordinates(xView, yView, xw, yw);
+}
+
+void screenToCameraCoordinates(int xScreen, int yScreen, GLdouble* xCamera, GLdouble* yCamera)
+{
+	*xCamera = ((wvRight - wvLeft) / glutWindowWidth) * xScreen;
+	*yCamera = ((wvTop - wvBottom) / glutWindowHeight) * (glutWindowHeight - yScreen);
+}
+
+void cameraToWorldCoordinates(GLdouble xcam, GLdouble ycam, GLdouble* xw, GLdouble* yw)
+{
+	*xw = xcam + wvLeft;
+	*yw = ycam + wvBottom;
+}
+
+void worldToCameraCoordiantes(GLdouble xWorld, GLdouble yWorld, GLdouble* xcam, GLdouble* ycam)
+{
+	double wvCenterX = wvLeft + (wvRight - wvLeft) / 2.0;
+	double wvCenterY = wvBottom + (wvTop - wvBottom) / 2.0;
+	*xcam = worldCenterX - wvCenterX + xWorld;
+	*ycam = worldCenterY - wvCenterY + yWorld;
+}
+
+int currentButton;
+
+void mouseButtonHandler2D(int button, int state, int xMouse, int yMouse)
+{
+	int i;
+
+	currentButton = button;
+	if (button == GLUT_LEFT_BUTTON)
+	{
+		switch (state) {
+		case GLUT_DOWN:
+			if (hoveredCtlPt > -1)
+			{
+				screenToWorldCoordinates(xMouse, yMouse, &circles[hoveredCtlPt].circleCenter.x, &circles[hoveredCtlPt].circleCenter.y);
+				screenToWorldCoordinates(xMouse, yMouse, &subcurve.controlPoints[hoveredCtlPt].x, &subcurve.controlPoints[hoveredCtlPt].y);
+			}
+			break;
+		case GLUT_UP:
+			glutSetWindow(window3D);
+			glutPostRedisplay();
+			break;
+		}
+	}
+	else if (button == GLUT_MIDDLE_BUTTON)
+	{
+		switch (state) {
+		case GLUT_DOWN:
+			break;
+		case GLUT_UP:
+			if (hoveredCtlPt == -1 && subcurve.numControlPoints < MAXCONTROLPOINTS)
+			{
+				GLdouble newPointX;
+				GLdouble newPointY;
+				screenToWorldCoordinates(xMouse, yMouse, &newPointX, &newPointY);
+				subcurve.controlPoints[subcurve.numControlPoints].x = newPointX;
+				subcurve.controlPoints[subcurve.numControlPoints].y = newPointY;
+				constructCircle(circleRadius, numCirclePoints, circles[subcurve.numControlPoints].circlePoints);
+				circles[subcurve.numControlPoints].circleCenter = subcurve.controlPoints[subcurve.numControlPoints];
+				subcurve.numControlPoints++;
+			}
+			else if (hoveredCtlPt > -1 && subcurve.numControlPoints > MINCONTROLPOINTS)
+			{
+				subcurve.numControlPoints--;
+				for (i = hoveredCtlPt; i < subcurve.numControlPoints; i++)
+				{
+					subcurve.controlPoints[i].x = subcurve.controlPoints[i + 1].x;
+					subcurve.controlPoints[i].y = subcurve.controlPoints[i + 1].y;
+					circles[i].circleCenter = circles[i + 1].circleCenter;
+				}
+			}
+
+			glutSetWindow(window3D);
+			glutPostRedisplay();
+			break;
+		}
+	}
+
+	glutSetWindow(window2D);
+	glutPostRedisplay();
+}
+
+void mouseMotionHandler2D(int xMouse, int yMouse)
+{
+	if (currentButton == GLUT_LEFT_BUTTON) {
+		if (hoveredCtlPt > -1)
+		{
+			screenToWorldCoordinates(xMouse, yMouse, &circles[hoveredCtlPt].circleCenter.x, &circles[hoveredCtlPt].circleCenter.y);
+			screenToWorldCoordinates(xMouse, yMouse, &subcurve.controlPoints[hoveredCtlPt].x, &subcurve.controlPoints[hoveredCtlPt].y);
+
+		}
+	}
+	glutPostRedisplay();
+	glutSetWindow(window3D);
+	glutPostRedisplay();
+	glutSetWindow(window2D);
+}
+
+void mouseHoverHandler2D(int xMouse, int yMouse)
+{
+	hoveredCtlPt = -1;
+	GLdouble worldMouseX, worldMouseY;
+	screenToWorldCoordinates(xMouse, yMouse, &worldMouseX, &worldMouseY);
+	// See if we're hovering over a circle
+	for (int i = 0; i < subcurve.numControlPoints; i++) {
+		GLdouble distToX = worldMouseX - circles[i].circleCenter.x;
+		GLdouble distToY = worldMouseY - circles[i].circleCenter.y;
+		GLdouble euclideanDist = sqrt(distToX * distToX + distToY * distToY);
+		if (euclideanDist < 0.5)
+			hoveredCtlPt = i;
+	}
+	glutPostRedisplay();
+}
+
+void mouseScrollWheelHandler2D(int button, int dir, int xMouse, int yMouse)
+{
+	GLdouble worldViewableWidth;
+	GLdouble worldViewableHeight;
+	GLdouble cameraOnCenterX;
+	GLdouble cameraOnCenterY;
+	GLdouble anchorPointX, anchorPointY;
+	double clipWindowWidth;
+	double clipWindowHeight;
+	double wvCenterX = wvLeft + (wvRight - wvLeft) / 2.0;
+	double wvCenterY = wvBottom + (wvTop - wvBottom) / 2.0;
+	double wvWidth = wvRight - wvLeft;
+	double wvHeight = wvTop - wvBottom;
+
+	worldToCameraCoordiantes(worldCenterX, worldCenterY, &cameraOnCenterX, &cameraOnCenterY);
+	if (wvWidth >= (worldRight - worldLeft) * 1.2)
+	{
+		anchorPointX = cameraOnCenterX;
+		anchorPointY = cameraOnCenterY;
+	}
+	else
+	{
+		// else, anchor the zoom to the mouse
+		screenToWorldCoordinates(xMouse, yMouse, &anchorPointX, &anchorPointY);
+	}
+	GLdouble anchorToCenterX = anchorPointX - wvCenterX;
+	GLdouble anchorToCenterY = anchorPointY - wvCenterY;
+
+	// Set up maximum shift
+	GLdouble maxPosShift = 50;
+	GLdouble maxNegShift = -50;
+	anchorToCenterX = (anchorToCenterX > maxPosShift) ? maxPosShift : anchorToCenterX;
+	anchorToCenterX = (anchorToCenterX < maxNegShift) ? maxNegShift : anchorToCenterX;
+	anchorToCenterY = (anchorToCenterY > maxPosShift) ? maxPosShift : anchorToCenterY;
+	anchorToCenterY = (anchorToCenterY < maxNegShift) ? maxNegShift : anchorToCenterY;
+
+	// Move the world centre closer to this point.
+	wvCenterX += anchorToCenterX / 4;
+	wvCenterY += anchorToCenterY / 4;
+
+	if (dir > 0)
+	{
+		// Zoom in to mouse point
+		clipWindowWidth = wvWidth * 0.8;
+		clipWindowHeight = wvHeight * 0.8;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+	}
+	else
+	{
+		// Zoom out
+		clipWindowWidth = wvWidth * 1.25;
+		clipWindowHeight = wvHeight * 1.25;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+	}
+	glutPostRedisplay();
+}
+
+void keyboardHandler2D(unsigned char key, int x, int y)
+{
+	int i;
+
+	double clipWindowWidth;
+	double clipWindowHeight;
+	double wvCenterX = wvLeft + (wvRight - wvLeft) / 2.0;
+	double wvCenterY = wvBottom + (wvTop - wvBottom) / 2.0;
+	double wvWidth = wvRight - wvLeft;
+	double wvHeight = wvTop - wvBottom;
+
+	switch (key)
+	{
+	case 'q':
+	case 'Q':
+	case 27:
+		// Esc, q, or Q key = Quit 
+		exit(0);
+		break;
+	case 107:
+	case '+':
+		clipWindowWidth = wvWidth * 0.8;
+		clipWindowHeight = wvHeight * 0.8;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+		break;
+	case 109:
+	case '-':
+		clipWindowWidth = wvWidth * 1.25;
+		clipWindowHeight = wvHeight * 1.25;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+		break;
+
+	default:
+		break;
+	}
+	glutPostRedisplay();
+}
+
+void specialKeyHandler2D(int key, int x, int y)
+{
+	double clipWindowWidth;
+	double clipWindowHeight;
+	double wvCenterX = wvLeft + (wvRight - wvLeft) / 2.0;
+	double wvCenterY = wvBottom + (wvTop - wvBottom) / 2.0;
+	double wvWidth = wvRight - wvLeft;
+	double wvHeight = wvTop - wvBottom;
+
+	switch (key)
+	{
+	case GLUT_KEY_LEFT:
+		wvLeft -= 5.0;
+		wvRight -= 5.0;
+		break;
+	case GLUT_KEY_RIGHT:
+		wvLeft += 5.0;
+		wvRight += 5.0;
+		break;
+	case GLUT_KEY_UP:
+		wvTop += 5.0;
+		wvBottom += 5.0;
+		break;
+	case GLUT_KEY_DOWN:
+		wvTop -= 5.0;
+		wvBottom -= 5.0;
+		break;
+		// Want to zoom in/out and keep  aspect ratio = 2.0
+	case GLUT_KEY_F1:
+		clipWindowWidth = wvWidth * 0.8;
+		clipWindowHeight = wvHeight * 0.8;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+		break;
+	case GLUT_KEY_F2:
+		clipWindowWidth = wvWidth * 1.25;
+		clipWindowHeight = wvHeight * 1.25;
+		wvRight = wvCenterX + clipWindowWidth / 2.0;
+		wvTop = wvCenterY + clipWindowHeight / 2.0;
+		wvLeft = wvCenterX - clipWindowWidth / 2.0;
+		wvBottom = wvCenterY - clipWindowHeight / 2.0;
+		break;
+	}
+	glutPostRedisplay();
+}
+
+
+void reshape2D(int w, int h)
+{
+	glutWindowWidth = (GLsizei)w;
+	glutWindowHeight = (GLsizei)h;
+	glViewport(0, 0, glutWindowWidth, glutWindowHeight);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(wvLeft, wvRight, wvBottom, wvTop);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+}
+
+
+
+/************************************************************************************
+ *
+ *
+ * 3D Window and Surface of Revolution Code
+ *
+ * Fill in the code in the empty functions
+ ************************************************************************************/
+ // Ground Mesh material
+GLfloat groundMat_ambient[] = { 0.4, 0.4, 0.4, 1.0 };
+GLfloat groundMat_specular[] = { 0.01, 0.01, 0.01, 1.0 };
+GLfloat groundMat_diffuse[] = { 0.4, 0.4, 0.7, 1.0 };
+GLfloat groundMat_shininess[] = { 1.0 };
+
+GLfloat light_position0[] = { 4.0, 8.0, 8.0, 1.0 };
+GLfloat light_diffuse0[] = { 1.0, 1.0, 1.0, 1.0 };
+
+GLfloat light_position1[] = { -4.0, 8.0, 8.0, 1.0 };
+GLfloat light_diffuse1[] = { 1.0, 1.0, 1.0, 1.0 };
+
+GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+GLfloat model_ambient[] = { 0.5, 0.5, 0.5, 1.0 };
+
+//
+// Surface of Revolution consists of vertices and quads
+//
+// Set up lighting/shading and material properties for surface of revolution
+GLfloat quadMat_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
+GLfloat quadMat_specular[] = { 0.45, 0.55, 0.45, 1.0 };
+GLfloat quadMat_diffuse[] = { 0.1, 0.35, 0.1, 1.0 };
+GLfloat quadMat_shininess[] = { 10.0 };
+
+
+// Quads and Vertices of the surface of revolution
+typedef struct Vertex
+{
+	GLdouble x, y, z;
+	Vector3D normal;
+	int numQuads;
+	int quadIndex[4];
+} Vertex;
+
+typedef struct Quad
+{
+	int vertexIndex[4]; // 4 vertex indices in clockwise order
+	Vector3D normal;
+} Quad;
+
+// Quads
+Quad* qarray;
+boolean quadArrayAllocated = false;
+
+// Vertices 
+#define NUMBEROFSIDES 16 // You may want to lower this to 4 or 5 when debugging
+
+Vertex* varray; // 
+boolean varrayAllocated = false;
+
+GLdouble fov = 60.0;
+
+int lastMouseX;
+int lastMouseY;
+
+boolean drawAsLines = false;
+boolean drawAsPoints = false;
+boolean drawNormals = false;
+
+GLdouble eyeX = 0.0, eyeY = 3.0, eyeZ = 10.0;
+GLdouble radius = eyeZ;
+GLdouble zNear = 0.1, zFar = 40.0;
+
+void init3DSurfaceWindow()
+{
+
+	// Initialize GLEW first
+	GLenum err = glewInit();
+	if (GLEW_OK != err) {
+		fprintf(stderr, "GLEW Error: %s\n", glewGetErrorString(err));
+		return;
+	}
+
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse0);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, model_ambient);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse1);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, model_ambient);
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position1);
+
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_NORMALIZE);    // Renormalize normal vectors 
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+
+	glClearDepth(1.0f);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LINE_SMOOTH);
+	glClearColor(0.4F, 0.4F, 0.4F, 0.0F);  // Color and depth for glClear
+
+	glViewport(0, 0, (GLsizei)window3DSizeX, (GLsizei)window3DSizeY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(fov, aspect, zNear, zFar);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(eyeX, eyeY, eyeZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+}
+
+
+void reshape3D(int w, int h)
+{
+	glutWindowWidth = (GLsizei)w;
+	glutWindowHeight = (GLsizei)h;
+	glViewport(0, 0, glutWindowWidth, glutWindowHeight);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(fov, aspect, zNear, zFar);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(eyeX, eyeY, eyeZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+}
+
+void display3D()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glLoadIdentity();
+	// Set up the Viewing Transformation (V matrix)	
+	gluLookAt(eyeX, eyeY, eyeZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+	drawGround();
+
+	// Reset VBO flag when rebuilding mesh
+	vboInitialized = false;
+
+	// Build and Draw Surface of Revolution (Quad Mesh)
+	buildVertexArray();
+	buildQuadArray();
+	computeQuadNormals();
+	computeVertexNormals();
+
+	// Draw quad mesh
+	glPushMatrix();
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, quadMat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, quadMat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, quadMat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, quadMat_shininess);
+
+	if (drawAsLines)
+		drawQuadsAsLines();
+	else if (drawAsPoints)
+		drawQuadsAsPoints();
+	else
+		drawQuads();
+
+	glPopMatrix();
+	glutSwapBuffers();
+}
+
+void drawGround()
+{
+	glPushMatrix();
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, groundMat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, groundMat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, groundMat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, groundMat_shininess);
+	glBegin(GL_QUADS);
+	glNormal3f(0, 1, 0);
+	glVertex3f(-22.0f, -4.0f, -22.0f);
+	glVertex3f(-22.0f, -4.0f, 22.0f);
+	glVertex3f(22.0f, -4.0f, 22.0f);
+	glVertex3f(22.0f, -4.0f, -22.0f);
+	glEnd();
+	glPopMatrix();
+}
+
+void initVBO() {
+	if (vboInitialized) return;
+
+	// Generate and bind VAO
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// Create VBO for vertices
+	glGenBuffers(1, &vboVertices);
+	glBindBuffer(GL_ARRAY_BUFFER, vboVertices);
+	glBufferData(GL_ARRAY_BUFFER,
+		subcurve.numCurvePoints * NUMBEROFSIDES * sizeof(GLdouble) * 3,
+		NULL, GL_STATIC_DRAW);
+	GLdouble* vertexData = (GLdouble*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+	for (int i = 0; i < subcurve.numCurvePoints * NUMBEROFSIDES; i++) {
+		vertexData[i * 3] = varray[i].x;
+		vertexData[i * 3 + 1] = varray[i].y;
+		vertexData[i * 3 + 2] = varray[i].z;
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glVertexPointer(3, GL_DOUBLE, 0, 0);
+	glEnableClientState(GL_VERTEX_ARRAY);
+
+	// Create VBO for normals
+	glGenBuffers(1, &vboNormals);
+	glBindBuffer(GL_ARRAY_BUFFER, vboNormals);
+	glBufferData(GL_ARRAY_BUFFER,
+		subcurve.numCurvePoints * NUMBEROFSIDES * sizeof(GLdouble) * 3,
+		NULL, GL_STATIC_DRAW);
+	GLdouble* normalData = (GLdouble*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+	for (int i = 0; i < subcurve.numCurvePoints * NUMBEROFSIDES; i++) {
+		normalData[i * 3] = varray[i].normal.x;
+		normalData[i * 3 + 1] = varray[i].normal.y;
+		normalData[i * 3 + 2] = varray[i].normal.z;
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glNormalPointer(GL_DOUBLE, 0, 0);
+	glEnableClientState(GL_NORMAL_ARRAY);
+
+	// Create VBO for indices
+	glGenBuffers(1, &vboIndices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndices);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		(subcurve.numCurvePoints - 1) * NUMBEROFSIDES * 4 * sizeof(GLuint),
+		NULL, GL_STATIC_DRAW);
+	GLuint* indexData = (GLuint*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+	for (int i = 0; i < (subcurve.numCurvePoints - 1) * NUMBEROFSIDES; i++) {
+		indexData[i * 4] = qarray[i].vertexIndex[0];
+		indexData[i * 4 + 1] = qarray[i].vertexIndex[1];
+		indexData[i * 4 + 2] = qarray[i].vertexIndex[2];
+		indexData[i * 4 + 3] = qarray[i].vertexIndex[3];
+	}
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+
+	vboInitialized = true;
+}
+
+
+void buildVertexArray() {
+	if (!varrayAllocated) {
+		varray = (Vertex*)malloc(objVertices.size() * sizeof(Vertex));
+		varrayAllocated = true;
+	}
+	for (size_t i = 0; i < objVertices.size(); i++) {
+		varray[i].x = objVertices[i].x;
+		varray[i].y = objVertices[i].y;
+		varray[i].z = objVertices[i].z;
+		varray[i].normal.x = objVertices[i].nx;
+		varray[i].normal.y = objVertices[i].ny;
+		varray[i].normal.z = objVertices[i].nz;
+		varray[i].numQuads = 0;
+	}
+}
+
+void buildQuadArray() {
+	if (!qarrayAllocated) {
+		qarray = (Quad*)malloc((objFaces.size() / 4) * sizeof(Quad));
+		qarrayAllocated = true;
+	}
+	for (size_t i = 0; i < objFaces.size() / 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			qarray[i].vertexIndex[j] = objFaces[i * 4 + j];
+
+			// Update vertex quad information
+			int vertIndex = objFaces[i * 4 + j];
+			varray[vertIndex].quadIndex[varray[vertIndex].numQuads] = i;
+			varray[vertIndex].numQuads++;
+		}
+	}
+}
+
+
+void computeQuadNormals()
+{
+	for (size_t i = 0; i < objFaces.size() / 4; i++) // for each quad
+	{
+		Vector3D normal = { 0, 0, 0 };
+
+		// Calculate normal using all four vertices of the quad
+		for (int j = 0; j < 4; j++) {
+			int vi_index = qarray[i].vertexIndex[j];
+			int vj_index = qarray[i].vertexIndex[(j + 1) % 4];
+
+			Vertex* vi = &varray[vi_index];
+			Vertex* vj = &varray[vj_index];
+
+			normal.x += (((vi->z) + (vj->z)) * ((vj->y) - (vi->y)));
+			normal.y += (((vi->x) + (vj->x)) * ((vj->z) - (vi->z)));
+			normal.z += (((vi->y) + (vj->y)) * ((vj->x) - (vi->x)));
+		}
+
+		// Flip them - must be a problem in code above
+		normal.x *= -1.0;
+		normal.y *= -1.0;
+		normal.z *= -1.0;
+
+		qarray[i].normal = normalize(normal);
+	}
+}
+
+void computeVertexNormals()
+{
+	// For each vertex
+	for (size_t i = 0; i < objVertices.size(); i++)
+	{
+		Vector3D vn = { 0, 0, 0 };
+		int numQuads = varray[i].numQuads;
+
+		// Average the normals of all quads this vertex belongs to
+		for (int j = 0; j < numQuads; j++)
+		{
+			int quadIndex = varray[i].quadIndex[j];
+			vn.x += qarray[quadIndex].normal.x;
+			vn.y += qarray[quadIndex].normal.y;
+			vn.z += qarray[quadIndex].normal.z;
+		}
+
+		varray[i].normal = normalize(vn);
+	}
+}
+
+
+
+void drawQuads()
+{
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, quadMat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, quadMat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, quadMat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, quadMat_shininess);
+
+	// Initialize VBO if not already done
+	if (!vboInitialized) {
+		initVBO();
+	}
+
+	glPushMatrix();
+
+	// Bind VAO and draw
+	glBindVertexArray(vao);
+	glDrawElements(GL_QUADS,
+		(subcurve.numCurvePoints - 1) * NUMBEROFSIDES * 4,
+		GL_UNSIGNED_INT, 0);
+
+	glPopMatrix();
+}
+
+void drawQuadsAsPoints() {
+	glPointSize(5.0);  // Make points visible
+	glBegin(GL_POINTS);
+	for (int row = 0; row < subcurve.numCurvePoints - 1; row++) {
+		for (int col = 0; col < NUMBEROFSIDES; col++) {
+			for (int i = 0; i < 4; i++) {
+				Vertex* vertex = &varray[qarray[row * NUMBEROFSIDES + col].vertexIndex[i]];
+				glNormal3f(vertex->normal.x, vertex->normal.y, vertex->normal.z);
+				glVertex3f(vertex->x, vertex->y, vertex->z);
+			}
+		}
+	}
+	glEnd();
+}
+
+void drawQuadsAsLines() {
+	// Draw the mesh wireframe
+	glColor3f(1.0, 1.0, 1.0);  // White lines
+	for (int row = 0; row < subcurve.numCurvePoints - 1; row++) {
+		for (int col = 0; col < NUMBEROFSIDES; col++) {
+			glBegin(GL_LINE_LOOP);
+			for (int i = 0; i < 4; i++) {
+				Vertex* vertex = &varray[qarray[row * NUMBEROFSIDES + col].vertexIndex[i]];
+				glVertex3f(vertex->x, vertex->y, vertex->z);
+			}
+			glEnd();
+		}
+	}
+
+	// Draw normal vectors if enabled
+	if (drawNormals) {
+		glColor3f(1.0, 1.0, 0.0);  // Yellow normals
+		glBegin(GL_LINES);
+		for (int row = 0; row < subcurve.numCurvePoints; row++) {
+			for (int col = 0; col < NUMBEROFSIDES; col++) {
+				Vertex* vertex = &varray[row * NUMBEROFSIDES + col];
+				// Start of normal vector
+				glVertex3f(vertex->x, vertex->y, vertex->z);
+				// End of normal vector (scaled for visibility)
+				glVertex3f(vertex->x + vertex->normal.x * 0.5,
+					vertex->y + vertex->normal.y * 0.5,
+					vertex->z + vertex->normal.z * 0.5);
+			}
+		}
+		glEnd();
+	}
+}
+
+// A few utility functions - use VECTOR3D.h or glm if you prefer
+Vector3D crossProduct(Vector3D a, Vector3D b)
+{
+	Vector3D cross;
+
+	cross.x = a.y * b.z - b.y * a.z;
+	cross.y = a.x * b.z - b.x * a.z;
+	cross.z = a.x * b.y - b.x * a.y;
+	return cross;
+}
+
+float DotProduct(Vector3D lhs, Vector3D rhs)
+{
+	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+}
+
+Vector3D fourVectorAverage(Vector3D a, Vector3D b, Vector3D c, Vector3D d)
+{
+	Vector3D average;
+	average.x = (a.x + b.x + c.x + d.x) / 4.0;
+	average.y = (a.y + b.y + c.y + d.y) / 4.0;
+	average.z = (a.z + b.z + c.z + d.z) / 4.0;
+	return average;
+}
+
+Vector3D normalize(Vector3D a)
+{
+	GLdouble norm = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+	Vector3D normalized;
+	normalized.x = a.x / norm;
+	normalized.y = a.y / norm;
+	normalized.z = a.z / norm;
+	return normalized;
+}
+
+// Mouse and Key Handling
+//
+//
+void mouseButtonHandler3D(int button, int state, int x, int y)
+{
+	currentButton = button;
+	lastMouseX = x;
+	lastMouseY = y;
+	switch (button)
+	{
+	case GLUT_MIDDLE_BUTTON:
+		if (state == GLUT_DOWN)
+		{
+			// nah, not needed
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void mouseScrollWheelHandler3D(int button, int dir, int xMouse, int yMouse)
+{
+	if (dir > 0) {
+		// Zoom in - decrease radius
+		radius = radius * 0.9;
+	}
+	else {
+		// Zoom out - increase radius
+		radius = radius * 1.1;
+	}
+
+	// Update camera position while maintaining current angles
+	eyeX = eyeX * (radius / eyeZ);
+	eyeY = eyeY * (radius / eyeZ);
+	eyeZ = radius;
+
+	glutPostRedisplay();
+}
+
+void mouseMotionHandler3D(int x, int y)
+{
+	int dx = x - lastMouseX;
+	int dy = y - lastMouseY;
+
+	if (currentButton == GLUT_LEFT_BUTTON)
+	{
+		// Orbit camera around y-axis
+		static float azimuth = 0.0;
+		azimuth += dx * 0.5;  // Scale factor for sensitivity
+
+		// Update camera x and z positions using trigonometry
+		eyeX = radius * sin(azimuth * M_PI / 180.0);
+		eyeZ = radius * cos(azimuth * M_PI / 180.0);
+	}
+
+	if (currentButton == GLUT_RIGHT_BUTTON)
+	{
+		// Control camera elevation
+		static float elevation = 30.0;  // Initial elevation angle
+		elevation -= dy * 0.5;  // Subtract because y increases downward
+
+		// Clamp elevation between 0 and 60 degrees
+		if (elevation < 0.0) elevation = 0.0;
+		if (elevation > 60.0) elevation = 60.0;
+
+		// Update camera y position and adjust x,z accordingly
+		eyeY = radius * sin(elevation * M_PI / 180.0);
+		float horizontalRadius = radius * cos(elevation * M_PI / 180.0);
+
+		// Maintain current azimuth angle
+		float azimuth = atan2(eyeX, eyeZ);
+		eyeX = horizontalRadius * sin(azimuth);
+		eyeZ = horizontalRadius * cos(azimuth);
+	}
+	else if (currentButton == GLUT_MIDDLE_BUTTON)
+	{
+		// Alternative zoom control using middle mouse button
+		radius += dy * 0.1;  // Zoom based on vertical mouse movement
+		if (radius < 2.0) radius = 2.0;  // Minimum zoom limit
+		if (radius > 40.0) radius = 40.0;  // Maximum zoom limit
+
+		// Update camera position while maintaining current angles
+		eyeX = eyeX * (radius / eyeZ);
+		eyeY = eyeY * (radius / eyeZ);
+		eyeZ = radius;
+	}
+
+	lastMouseX = x;
+	lastMouseY = y;
+	glutPostRedisplay();
+}
+
+void keyboardHandler3D(unsigned char key, int x, int y)
+{
+
+	switch (key)
+	{
+	case 'q':
+	case 'Q':
+	case 27:
+		// Esc, q, or Q key = Quit 
+		exit(0);
+		break;
+	case 'l':
+		if (drawAsLines)
+			drawAsLines = false;
+		else
+			drawAsLines = true;
+		break;
+	case 'p':
+		if (drawAsPoints)
+			drawAsPoints = false;
+		else
+			drawAsPoints = true;
+		break;
+	case 'n':
+		if (drawNormals)
+			drawNormals = false;
+		else
+			drawNormals = true;
+	case 's':
+		exportMeshToOBJ("exported_mesh.obj");
+		break;
+	default:
+		break;
+	}
+	glutPostRedisplay();
+}
+
+
+void exportMeshToOBJ(const char* filename) {
+	FILE* file;
+	fopen_s(&file, filename, "w");
+	if (!file) {
+		printf("Error: Could not open file for writing\n");
+		return;
+	}
+
+	// Write header
+	fprintf(file, "# Exported mesh from Surface Modeller\n");
+
+	// Write vertices and their normals
+	for (int i = 0; i < subcurve.numCurvePoints * NUMBEROFSIDES; i++) {
+		fprintf(file, "v %f %f %f\n",
+			varray[i].x, varray[i].y, varray[i].z);
+		fprintf(file, "vn %f %f %f\n",
+			varray[i].normal.x, varray[i].normal.y, varray[i].normal.z);
+	}
+
+	// Write faces (quads)
+	for (int i = 0; i < (subcurve.numCurvePoints - 1) * NUMBEROFSIDES; i++) {
+		// OBJ indices are 1-based
+		fprintf(file, "f %d//%d %d//%d %d//%d %d//%d\n",
+			qarray[i].vertexIndex[0] + 1, qarray[i].vertexIndex[0] + 1,
+			qarray[i].vertexIndex[1] + 1, qarray[i].vertexIndex[1] + 1,
+			qarray[i].vertexIndex[2] + 1, qarray[i].vertexIndex[2] + 1,
+			qarray[i].vertexIndex[3] + 1, qarray[i].vertexIndex[3] + 1);
+	}
+
+	fclose(file);
+	printf("Mesh exported successfully to %s\n", filename);
+}
