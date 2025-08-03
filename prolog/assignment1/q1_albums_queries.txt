@@ -1,0 +1,129 @@
+% Enter the names of your group members below.
+% If you only have 2 group members, leave the last space blank
+%
+%%%%%
+%%%%% NAME: Derek Eliopoulos
+%%%%% NAME: Kelvin Gu
+%%%%% NAME: Brandon Aboukhater
+%
+% Add your queries below.For example, if you want to add the query "pred(X, constant).", 
+% it should appear as follows:
+% 
+% %%%%% QUERY 2: Retrieves the block that is on top of blockA
+% on(X, blockA).
+%
+% where 2 is the number of the query. Omit the "%" on the line with the query below.
+% Don't forget to end queries with a period.
+%
+% Each query below is labelled with an English description of what should be queried for.
+
+%%%%%% QUERY 1: Did the record label Republic release an album called “Midnights”?
+albumLabel(midnights, republic).
+
+%%%%%% QUERY 2: Who was the artist that released the album “Renaissance”?
+albumArtist(renaissance, Artist).
+
+%%%%%% QUERY 3: Was there an artist who released albums in both 2010 and 2016, and if so, who was it?
+albumArtist(Album1, Artist), albumYear(Album1, 2010),
+albumArtist(Album2, Artist), albumYear(Album2, 2016), Album1 \= Album2.
+
+%%%%%% QUERY 4: Was there an album that was released in the year 2012 that was not released by either the record label Columbia or the record label Republic?
+albumYear(Album, 2012), not(albumLabel(Album, columbia)), not(albumLabel(Album, republic)).
+
+%%%%%% QUERY 5: Did any artist release two different albums, each with a different record label?
+albumArtist(Album1, Artist), albumLabel(Album1, Label1),
+albumArtist(Album2, Artist), albumLabel(Album2, Label2), Album1 \= Album2, Label1 \= Label2.
+
+%%%%%% QUERY 6: Did any artist release more than one album with the same record label?
+albumArtist(Album1, Artist), albumLabel(Album1, Label),
+albumArtist(Album2, Artist), albumLabel(Album2, Label), Album1 \= Album2.
+
+%%%%%% QUERY 7: Did the artist who released an album called “30” release any albums in years before that one?
+albumArtist(30, Artist), albumYear(Album, Year), Year < 30, albumArtist(Album, Artist).
+
+%%%%%% QUERY 8: Was there a year from 2000 to 2023 (inclusive) that the record label Republic did not release an album?
+year(Year), not(albumLabel(republic, Year)).
+
+%%%%%% QUERY 9: Was there an artist that released an album in 3 consecutive years starting in 2018 or later?
+albumArtist(Album1, Artist), albumYear(Album1, Year1), Year1 >= 2018,
+albumArtist(Album2, Artist), albumYear(Album2, Year2), Year2 is Year1 + 1,
+albumArtist(Album3, Artist), albumYear(Album3, Year3), Year3 is Year1 + 2,
+Album1 \= Album2, Album1 \= Album3, Album2 \= Album3.
+
+%%%%%% QUERY 10: Did any record label release exactly one album in 2015?
+albumLabel(Album1, Label), albumYear(Album1, 2015),
+not((albumLabel(Album2, Label), Album1 \= Album2, albumYear(Album2, 2015))).
+
+%%%%%% QUERY 11: What was the last album released by drake?
+albumArtist(Album, drake), albumYear(Album, Year), not((albumArtist(OtherAlbum, drake), albumYear(OtherAlbum, OtherYear), OtherYear > Year)).
+
+
+
+%%%
+%%%
+%%%
+%%%%% INTERACTION
+
+
+1 ?- consult('q1_albums_kb.pl').
+true.
+
+2 ?- albumLabel(midnights, republic).
+true.
+
+3 ?- albumArtist(renaissance, Artist).
+Artist = vinci.
+
+4 ?- albumArtist(Album1, Artist), albumYear(Album1, 2010),
+albumArtist(Album2, Artist), albumYear(Album2, 2016), Album1 \= Album2.
+Album1 = drake_take,
+Artist = drake,
+Album2 = drake_snake .
+
+5 ?- albumYear(Album, 2012), not(albumLabel(Album, columbia)), not(albumLabel(Album, republic)).
+false.
+
+6 ?- albumArtist(Album1, Artist), albumLabel(Album1, Label1),
+albumArtist(Album2, Artist), albumLabel(Album2, Label2), Album1 \= Album2, Label1 \= Label2.
+Album1 = fridge,
+Artist = oven,
+Label1 = apply_ants,
+Album2 = hot,
+Label2 = hot_take_records .
+
+7 ?- albumArtist(Album1, Artist), albumLabel(Album1, Label),
+albumArtist(Album2, Artist), albumLabel(Album2, Label), Album1 \= Album2.
+Album1 = drake_take,
+Artist = drake,
+Label = big_music,
+Album2 = drake_snake .
+
+8 ?- albumArtist(30, Artist), albumYear(Album, Year), Year < 30, albumArtist(Album, Artist).
+false.
+
+10 ?- year(Year), not(albumLabel(republic, Year)).
+Year = 2000 .
+
+11 ?- albumArtist(Album1, Artist), albumYear(Album1, Year1), Year1 >= 2018,
+albumArtist(Album2, Artist), albumYear(Album2, Year2), Year2 is Year1 + 1,
+albumArtist(Album3, Artist), albumYear(Album3, Year3), Year3 is Year1 + 2,
+Album1 \= Album2, Album1 \= Album3, Album2 \= Album3.
+Album1 = chair,
+Artist = oven,
+Year1 = 2018,
+Album2 = hot,
+Year2 = 2019,
+Album3 = (table),
+Year3 = 2020 .
+
+12 ?- albumLabel(Album1, Label), albumYear(Album1, 2015),
+not((albumLabel(Album2, Label), Album1 \= Album2, albumYear(Album2, 2015))).
+Album1 = pizza,
+Label = food_groups .
+
+
+15 ?- albumArtist(Album, drake), albumYear(Album, Year), not((albumArtist(OtherAlbum, drake), albumYear(OtherAlbum, OtherYear), OtherYear > Year)).
+Album = drake_snake,
+Year = 2016.
+
+

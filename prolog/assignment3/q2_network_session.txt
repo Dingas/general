@@ -1,0 +1,48 @@
+% Enter the names of your group members below.
+% If you only have 2 group members, leave the last space blank
+%
+%%%%%
+%%%%% NAME: Kelvin Gu
+%%%%% NAME: Brandon Aboukhater
+%%%%% NAME: Derek Eliopoulos
+%
+% Add the required rules in the corresponding sections. 
+% If you put the rules in the wrong sections, you will lose marks.
+%
+% You may add additional comments as you choose but DO NOT MODIFY the comment lines below
+%
+
+%%%%% SECTION: networkSession
+%%%%% Put your session for the network problem below
+?- Start is cputime, solve_and_print, End is cputime, Time is End - Start.
+Address         System
+______________________
+bananas.com     4
+firstbank.com   1
+netvue.com      6
+pricenet.com    3
+sysworld.com    2
+univmoose.edu   5
+______________________
+First Name      System
+______________________
+Catarina        3
+Lizzie          4
+Mona            5
+Anthony         2
+Daniel          1
+Jaime           6
+______________________
+Last Name       System
+______________________
+Elby            3
+Kim             2
+Osborne         1
+Tsuji           4
+Wolverton       6
+Zickerman       5
+Start = 0.734
+End = 0.796
+Time = 0.062000000000000055
+Yes (0.06s cpu, solution 1, maybe more)
+No (0.36s cpu)

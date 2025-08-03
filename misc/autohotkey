@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const playerGeometry = new THREE.BoxGeometry(1, 1, 1);
+const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const player = new THREE.Mesh(playerGeometry, playerMaterial);
+scene.add(player);
+
+camera.position.z = 5;
+
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+cube.position.x = 2;
+scene.add(cube);
+
+const clock = new THREE.Clock();
+
+const movementSpeed = 2;
+const jumpPower = 5;
+let isJumping = false;
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === ' ') {
+    jump();
+  }
+});
+
+const jump = () => {
+  if (!isJumping) {
+    player.position.y += jumpPower;
+    isJumping = true;
+  }
+};
+
+const animate = () => {
+  const deltaTime = clock.getDelta();
+
+  const playerVelocity = new THREE.Vector3();
+
+  if (isJumping) {
+    playerVelocity.y -= jumpPower * deltaTime;
+    if (player.position.y <= 0) {
+      player.position.y = 0;
+      isJumping = false;
+    }
+  }
+
+  if (isKeyDown('W')) {
+    playerVelocity.z -= movementSpeed * deltaTime;
+  }
+  if (isKeyDown('S')) {
+    playerVelocity.z += movementSpeed * deltaTime;
+  }
+  if (isKeyDown('A')) {
+    playerVelocity.x -= movementSpeed * deltaTime;
+  }
+  if (isKeyDown('D')) {
+    playerVelocity.x += movementSpeed * deltaTime;
+  }
+
+  player.position.add(playerVelocity);
+
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+};
+
+const keyStates = {};
+
+const isKeyDown = (key) => {
+  return keyStates[key] === true;
+};
+
+document.addEventListener('keydown', (event) => {
+  keyStates[event.key] = true;
+});
+
+document.addEventListener('keyup', (event) => {
+  keyStates[event.key] = false;
+});
+
+animate();
+</script>
+</body>
+</html>

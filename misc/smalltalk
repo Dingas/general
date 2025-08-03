@@ -1,0 +1,6 @@
+Transcript clear.
+arr := #(84 45 54 456 456 33 34).
+arr do:[:i | x:=x+i].
+Transcript show: x/(arr size).
+
+

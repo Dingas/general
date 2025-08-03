@@ -1,0 +1,108 @@
+% Enter the names of your group members below.
+% If you only have 2 group members, leave the last space blank
+%
+%%%%%
+%%%%% NAME: Brandon Aboukhater
+%%%%% NAME: Derek Eliopoulos
+%%%%% NAME: Kelvin Gu
+%
+% Add the required rules in the corresponding sections. 
+% If you put the rules in the wrong sections, you will lose marks.
+%
+% You may add additional comments as you choose but DO NOT MODIFY the comment lines below
+%
+
+%%%%% SECTION: puzzleGenerateAndTestSession
+%%%%% Put your session for generate and test below
+
+/home/cps721/assignment3# eclipse
+ECLiPSe Constraint Logic Programming System [kernel threads]
+Kernel and basic libraries copyright Cisco Systems, Inc.
+and subject to the Cisco-style Mozilla Public Licence 1.1
+(see legal/cmpl.txt or http://eclipseclp.org/licence)
+Source available at www.sourceforge.org/projects/eclipse-clp
+GMP library copyright Free Software Foundation, see legal/lgpl.txt
+For other libraries see their individual copyright notices
+Version 7.0 #54 (x86_64_linux), Wed Feb 26 22:13 2020
+[eclipse 1]: [q1a_puzzle_generate_and_test].
+source_processor.eco loaded in 0.00 seconds
+hash.eco   loaded in 0.00 seconds
+compiler_common.eco loaded in 0.00 seconds
+compiler_normalise.eco loaded in 0.00 seconds
+compiler_map.eco loaded in 0.00 seconds
+compiler_analysis.eco loaded in 0.00 seconds
+compiler_peephole.eco loaded in 0.00 seconds
+compiler_codegen.eco loaded in 0.00 seconds
+compiler_varclass.eco loaded in 0.00 seconds
+compiler_indexing.eco loaded in 0.00 seconds
+compiler_regassign.eco loaded in 0.00 seconds
+asm.eco    loaded in 0.00 seconds
+module_options.eco loaded in 0.00 seconds
+ecl_compiler.eco loaded in 0.03 seconds
+q1a_puzzle_generate_and_test.pl compiled 16600 bytes in 0.00 seconds
+
+Yes (0.03s cpu)
+[eclipse 2]: Start is cputime, solve_and_print, End is cputime, Time is End - Start.
+
+    1 8 3
+  * 1 6 4
+  ----------
+    7 3 2
++ 1 0 9 8
+  1 8 3 
+  ----------
+ 3 0 0 1 2
+
+Start = 0.0787559
+End = 113.6638528
+Time = 113.5850969
+Yes (113.59s cpu, solution 1, maybe more) ? 
+[eclipse 3]: 
+
+
+%%%%% SECTION: puzzleInterleavingSession
+%%%%% Put your session for generate and test below
+
+/home/cps721/assignment3# eclipse
+ECLiPSe Constraint Logic Programming System [kernel threads]
+Kernel and basic libraries copyright Cisco Systems, Inc.
+and subject to the Cisco-style Mozilla Public Licence 1.1
+(see legal/cmpl.txt or http://eclipseclp.org/licence)
+Source available at www.sourceforge.org/projects/eclipse-clp
+GMP library copyright Free Software Foundation, see legal/lgpl.txt
+For other libraries see their individual copyright notices
+Version 7.0 #54 (x86_64_linux), Wed Feb 26 22:13 2020
+[eclipse 1]: [q1b_puzzle_interleaving].
+source_processor.eco loaded in 0.00 seconds
+hash.eco   loaded in 0.00 seconds
+compiler_common.eco loaded in 0.00 seconds
+compiler_normalise.eco loaded in 0.00 seconds
+compiler_map.eco loaded in 0.00 seconds
+compiler_analysis.eco loaded in 0.00 seconds
+compiler_peephole.eco loaded in 0.00 seconds
+compiler_codegen.eco loaded in 0.00 seconds
+compiler_varclass.eco loaded in 0.00 seconds
+compiler_indexing.eco loaded in 0.00 seconds
+compiler_regassign.eco loaded in 0.00 seconds
+asm.eco    loaded in 0.00 seconds
+module_options.eco loaded in 0.00 seconds
+ecl_compiler.eco loaded in 0.03 seconds
+q1b_puzzle_interleaving.pl compiled 17592 bytes in 0.00 seconds
+
+Yes (0.03s cpu)
+[eclipse 2]: Start is cputime, solve_and_print, End is cputime, Time is End - Start.
+
+    1 8 3
+  * 1 6 4
+  ----------
+    7 3 2
++ 1 0 9 8
+  1 8 3 
+  ----------
+ 3 0 0 1 2
+
+Start = 0.0792802
+End = 1.7361046999999998
+Time = 1.6568245
+Yes (1.66s cpu, solution 1, maybe more) ? 
+[eclipse 3]: 

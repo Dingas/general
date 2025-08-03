@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta name="description" content="Just a fun webzone to hang out at">
+  <meta name="keywords" content="bio, dance, phrase">
+  <meta name="author" content="Derek Eliopoulos">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derek's Webzone</title>
+</head>
+
+<body>
+<div>
+
+<header class="font1">
+    <h1>Derek's Webzone</h1>
+    <h2>A world of adventure awaits<h2>
+</header>
+
+<img id="bannerBaby" src="baby.gif" alt="Dancing Baby">
+
+<nav>
+    <!-- Dummy links just for show -->
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+</nav>
+<main>
+
+    <article>
+        <h3>My favorite phrase</h3>
+        <p>While it leaves me a bit winded, this has always been my favorite phrase: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </article>
+
+    <section>
+    <aside>
+        <button onclick="toggleBaby()">Toggle Baby</button>
+        <figure>
+            <img id="babyDance" src="baby.gif" alt="Dancing Baby">
+            <figcaption>Fig.1 - animated baby dancing.</figcaption>
+        </figure>
+        <details>
+            <summary>Born to dance?</summary>
+            <p>Not everybody knows this about me, but I was born to dance.</p>
+        </details>
+    </aside>
+        <h3>I do a mean jig</h3>
+        <p>
+        
+        You won't think so just by looking at me and I don't like to talk about it much, but at times when it's needed I am prone to bust an entire move. Sometimes two.
+        
+        </p>
+    </section>
+
+    
+</main>
+
+<footer class="font1">
+    <p>Author: Derek Eliopoulos</p>
+    <p><a href="mailto:fake@false.com"> Contact me at this legitimate email address</p>
+</footer>
+
+</div>
+
+<script>
+function toggleBaby() {
+  var x = document.getElementById("babyDance");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+</body>
+</html>
+
+

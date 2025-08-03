@@ -1,0 +1,1 @@
+IO.puts Lab4.tailFib(9)

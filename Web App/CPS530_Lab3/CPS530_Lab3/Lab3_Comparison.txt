@@ -1,0 +1,3 @@
+    Using bootstrap made the entire ordeal much easier by comparison, however, there were still some caveats. One would be that it forced me to use jQuery. I'd prefer not to be beholden to jQuery. Not that there's anything wrong with it, but it's just another thing I would need to import just to run a simple webpage. Were I to be more commited to the design of a page, I'd prefer to take the longer route just to avoid bloat, even if it's only a few KB.
+    
+    The benefits to bootstrap are immediately appartent though. It's faster and more convenient to implement. If work hours are a concern in developing webpages, while still wanting responsive design, this is the solution for it.

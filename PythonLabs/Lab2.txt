@@ -1,0 +1,60 @@
+1.
+
+arr := #(706 348 435 430 278 736 803 683 248 873).
+range := arr size.
+x:=0.
+
+1 to: range do: [ :i |
+	y:=arr at: i.
+	x := x + y.
+	 ].
+x := x/range.
+^x
+____
+
+arr := #(706 348 435 430 278 736 803 683 248 873).
+
+range := arr size.
+x:=0.
+i:=0.
+[ i<range ] whileTrue: [
+	i:= i+1.
+	y :=arr at: i.
+	x := x + y.
+	  ].
+x := x/range.
+^x
+______
+
+2.
+
+arrSize := 500.
+arr := Array new: arrSize.
+i:=0.
+[ i<arrSize ] whileTrue: [ 
+	i:=i+1.
+	arr at: i put: (0 to: 1000) 	atRandom.
+].
+
+^arr
+
+____
+
+3.
+
+arr := #(706 348 435 430 278 736 803 683 248 873).
+
+range := arr size.
+x:=1.
+i:=0.
+[ i<range ] whileTrue: [
+	i:= i+1.
+	y:=arr at: i.
+	
+	y > x & y odd ifTrue: [ x := y ].
+	  ].
+^x
+
+
+
+

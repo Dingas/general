@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="myCanvas" width="500" height="500" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+
+<script>
+// Get the canvas and context
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
+
+// Define the ball
+var ball = {
+    x: canvas.width / 2,
+    y: canvas.height - 30,
+    dx: 2,
+    dy: -2,
+    radius: 10
+};
+
+// Define gravity and the bounce factor
+var gravity = 0.1;
+var bounceFactor = 0.7;
+var mouseX = 0;
+var mouseY = 0;
+var mGrav = 0.1;
+
+function drawBall() {
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+    ctx.fillStyle = "#0095DD";
+    ctx.fill();
+    ctx.closePath();
+}
+
+
+
+document.addEventListener('mousemove', function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+
+function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if(ball.x<mouseX) {
+        ball.dx+=mGrav;
+    } else {
+        ball.dx-=mGrav;
+    }
+    
+    if(ball.y<mouseY) {
+        ball.dy+=mGrav;
+    } else {
+        ball.dy-=mGrav;
+    }
+    
+    
+    // Draw the ball
+    drawBall();
+    
+    // Apply the gravity to the ball
+    ball.dy += gravity;
+    
+    // Move the ball
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+    
+    // Check for collision with the ground
+    if(ball.y + ball.radius > canvas.height) {
+        ball.y = canvas.height - ball.radius;
+        
+        // Apply the bounce factor to the ball's speed
+        ball.dy *= -bounceFactor;
+    }
+    
+    // Check for collision with the walls
+    if(ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.dx *= -1;
+    }
+    
+    requestAnimationFrame(update);
+}
+
+update();
+</script>
+
+</body>
+</html>

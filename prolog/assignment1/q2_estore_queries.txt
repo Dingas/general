@@ -1,0 +1,68 @@
+% Enter the names of your group members below.
+% If you only have 2 group members, leave the last space blank
+%
+%%%%%
+%%%%% NAME: Kelvin Gu
+%%%%% NAME: Brandon Aboukhater
+%%%%% NAME: Derek Eliopoulos
+%
+% Add your queries below.For example, if you want to add the query "pred(X, constant).", 
+% it should appear as follows:
+% 
+% %%%%% QUERY 2
+% % EXPLANATION: Checks if there is a block on blockA
+% on(X, blockA).
+%
+% where 2 is the number of the query. The EXPLANATION line should contain your explanation 
+% in English of what the query tests. Omit the "%" on the line with the query
+% Don't forget to end queries with a period.
+
+
+%%%%%% QUERY 1
+% EXPLANATION: Checks what the cost of all the products together is before tax and shipping.
+subtotal(X).
+
+%%%%%% QUERY 2
+% EXPLANATION: Checks what the cost of regular shipping for all the products together is when it is not free.
+calculateBaseShipping(X).
+
+%%%%%% QUERY 3
+% EXPLANATION: Checks what the cost is of regular shipping for all the products together.
+calculateShipping(regular, X).
+
+%%%%%% QUERY 4
+% EXPLANATION: Checks what the cost is of express shipping for all the products together.
+calculateShipping(express, X).
+%%%%%% QUERY 5
+% EXPLANATION: Checks what the total cost is of all the products together including regular shipping and tax.
+totalCost(regular, X).
+
+%%%%%% QUERY 6
+% EXPLANATION: Checks what the total cost is of all the products together including express shipping and tax.
+totalCost(express, X).
+
+% If you want to add more queries, put them above and use the same formatting as given above.
+
+
+%%%
+%%%
+%%%
+%%%%% INTERACTION
+?- subtotal(X).
+X = 1800
+Yes (0.00s cpu)
+?- calculateBaseShipping(X).
+X = 135
+Yes (0.00s cpu)
+?- calculateShipping(regular, X).
+X = 0
+Yes (0.00s cpu, solution 1, maybe more)
+?- calculateShipping(express, X).
+X = 202.5
+Yes (0.00s cpu)
+?- totalCost(regular, X).
+X = 2033.9999999999998
+Yes (0.00s cpu, solution 1, maybe more)
+?- totalCost(express, X).
+X = 2262.825
+Yes (0.00s cpu)

@@ -1,0 +1,45 @@
+I2=imread('I2.png');
+for i=1:30
+    N = imnoise(I2,'gaussian')
+    imwrite(N,sprintf('N%d.jpg',i))
+end;
+
+
+
+N1=im2double(imread(sprintf('N1.jpg',i)));
+N2=im2double(imread(sprintf('N2.jpg',i)));
+NA1=N1;
+
+NA1=imadd(NA1,N2);
+NA1=NA1/2;
+imshow(NA1);
+
+imwrite(NA1,'NA1.jpg');
+
+
+NA=N1;
+for i=2:5
+    img=imread(sprintf('N%d.jpg',i));
+    img=im2double(img);
+    NA=imadd(NA,img);
+end;
+NA2=NA/5;
+imwrite(NA2,'NA2.jpg');
+
+NA=N1;
+for i=2:20
+    img=imread(sprintf('N%d.jpg',i));
+    img=im2double(img);
+    NA=imadd(NA,img);
+end;
+NA3=NA/20;
+imwrite(NA3,'NA3.jpg');
+
+NA=N1;
+for i=2:30
+    img=imread(sprintf('N%d.jpg',i));
+    img=im2double(img);
+    NA=imadd(NA,img);
+end;
+NA4=NA/30;
+imwrite(NA4,'NA4.jpg');

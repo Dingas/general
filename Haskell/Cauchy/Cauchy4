@@ -1,0 +1,59 @@
+use std::fmt;
+use std::ops;
+use std::cmp;
+
+
+fn main(){
+    let cList1 = CauchyList { p: 8, content: vec![1, 2, 3, 4, 5] }
+    let cList2 = CauchyList { p: 8, content: vec![1, 2, 3, 4, 5, 6, 7] }
+}
+
+pub struct CauchyList {
+    pub p: i32,
+    pub content: Vec<i32>
+}
+
+impl CauchyList {
+    // methods here
+}
+
+impl cmp::PartialEq for CauchyList {
+    fn eq(&self, other: &Self) -> bool {    
+        self
+    }
+}
+
+impl ops::Add<CauchyList> for CauchyList {
+    type Output = CauchyList;
+    fn add(self, other: CauchyList) -> CauchyList {
+        //return CauchyList {p: self.p, ...
+    }
+}
+
+impl ops::Sub<CauchyList> for CauchyList {
+    type Output = CauchyList;
+    fn sub(self, other: CauchyList) -> CauchyList {
+        //return CauchyList {p: self.p, ...
+    }
+}
+
+impl ops::Mul<CauchyList> for CauchyList {
+    type Output = CauchyList;
+    fn mul(self, other: CauchyList) -> CauchyList {
+        //return CauchyList {p: self.p, ...
+    }
+}
+
+impl ops::Mul<i32> for CauchyList {
+    type Output = CauchyList;
+    fn mul(self, other: i32) -> CauchyList {
+        // for multiplying with regular integers
+        //return CauchyList {p: self.p, ...
+    }
+}
+
+impl fmt::Display for CauchyList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        
+    }
+}

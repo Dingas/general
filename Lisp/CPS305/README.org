@@ -1,0 +1,36 @@
+#+Title: CPS305 - Programming Utilities
+
+This repository contains the basic programming utilities needed for the CPS305 - Data Structures course
+
+* Installation
+
+** Portacle users
+
+Clone this repository in the ~portacle/projects/~ directory:
+
+#+begin_src shell
+$ git clone https://github.com/marcus3santos/cps305-utils.git
+#+end_src
+
+* Modifying labs
+
+
+1. Clone the repository on your computer.
+2. If you are modifying an existing lab, say, *labXX.org*:
+  1. Modify the *labXX-solution.lisp* file that you have on your computer.
+  2. Change *labXX-test.lisp* and ensure your lab solution passes all test cases
+  3. Replace *labXX-test.lisp* in the repository.
+3. If you are creating a new lab, say, *labXX.org*:
+  1. Create the lab solution in your *labXX-solution.lisp* file.
+  2. Create your *labXX-test.lisp* and ensure your lab solution passes
+     all test cases. Use other labs as a template. Notice that you
+     must create a top level function called =test-labXX= that calls
+     the test cases you have created.
+  3. Add the reference to *labXX-test.lisp* in *cps305-utils.asd*
+  4. Add the clause =(:labXX (test-labXX))= to the body of the case form in the =run-tests= function in *utils.lisp*
+  5. Upload *labXX-test.lisp* to the repository, and update *cps305-utils.asd* and *utils.lisp* in the repository
+
+
+
+
+

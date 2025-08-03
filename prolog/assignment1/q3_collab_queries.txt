@@ -1,0 +1,254 @@
+% Enter the names of your group members below.
+% If you only have 2 group members, leave the last space blank
+%
+%%%%%
+%%%%% NAME: Brandon Aboukhater  
+%%%%% NAME: Derek Eliopoulos
+%%%%% NAME: Kelvin Gu
+%
+% Add your queries below.For example, if you want to add the query "pred(X, constant).", 
+% it should appear as follows:
+% 
+% %%%%% QUERY 2
+% % EXPLANATION: Checks if there is a block on blockA
+% on(X, blockA).
+%
+% where 2 is the number of the query. The EXPLANATION line should contain your explanation 
+% in English of what the query tests. Omit the "%" on the line with the query
+% Don't forget to end queries with a period.
+
+
+%%%%%% QUERY 1
+% EXPLANATION: Check if James directly collaborated with Alex, did they co-author something together?
+collabDist('james', 'alex', 1).
+
+
+%%%%%% QUERY 2
+% EXPLANATION: Did Jennifer and Mark directly co-auther an article on the topic of ai?
+collabDistWithAI('jennifer', 'mark', 1, at_least_one).
+
+
+%%%%%% QUERY 3
+% EXPLANATION: Was there an intermediate author that collaborated with both James and Paul?
+collabDist('james', 'paul', 2).
+
+%%%%%% QUERY 4
+% EXPLANATION: Was there an intermediate author that collaborated with both James and Jennifer, and was at least one article involving ai?
+collabDistWithAI('james', 'jennifer', 2, at_least_one).
+
+%%%%%% QUERY 5
+% EXPLANATION: Eve, Alice and an intermediate collaborator have not worked on any ai publications
+collabDistWithAI('eve', 'alice', 2, none).
+
+%%%%%% QUERY 6
+% EXPLANATION: Is there a chain of up to a maximum of 3 authors that have collaborated with James and George.
+collabDist('james', 'george', 3).
+
+
+%%%%%% QUERY 7
+% EXPLANATION: What authors that have contributed on articles with george with a max contribution distance of 2
+% meaning you would have to traverse up to 2 authors to get from X to george.
+collabDist('george', X, 2).
+
+
+%%%%%% QUERY 8
+% EXPLANATION: With a maximum collaboration distance of 3, is there at least one ai article written between James and Peter?
+collabDistWithAI('james', 'peter', 3, at_least_one).
+
+%%%%%% QUERY 9
+% EXPLANATION: What authors that have contributed on articles with alice with a max contribution distance of 3 and that have worked on at least one ai article 
+% meaning you would have to traverse up to 2 authors to get from X to alice with at least one ai article in the path.
+collabDistWithAI('alice', X, 2, at_least_one). 
+
+%%%%%% QUERY 10
+% EXPLANATION: What authors that have contributed on articles with alice with a max contribution distance of 3 and that have NOT worked on any ai articles 
+% meaning you would have to traverse up to 3 authors to get from X to mark with NO ai articles in the path.
+collabDistWithAI(X, 'mark', 3, none).
+
+
+% If you want to add more queries, put them above and use the same formatting as given above.
+
+
+%%%
+%%%
+%%%
+%%%%% INTERACTION
+
+%%%%% LOADING
+
+[eclipse 1]: [q3_collab].
+source_processor.eco loaded in 0.00 seconds
+hash.eco   loaded in 0.00 seconds
+compiler_common.eco loaded in 0.00 seconds
+compiler_normalise.eco loaded in 0.00 seconds
+compiler_map.eco loaded in 0.00 seconds
+compiler_analysis.eco loaded in 0.00 seconds
+compiler_peephole.eco loaded in 0.00 seconds
+compiler_codegen.eco loaded in 0.00 seconds
+compiler_varclass.eco loaded in 0.00 seconds
+compiler_indexing.eco loaded in 0.00 seconds
+compiler_regassign.eco loaded in 0.00 seconds
+asm.eco    loaded in 0.00 seconds
+module_options.eco loaded in 0.00 seconds
+ecl_compiler.eco loaded in 0.03 seconds
+file q3_collab.pl, line 82: syntax error: unexpected fullstop
+| 	\+(articleTopic(Article, 'ai').
+|                                     ^ here
+File q3_collab.pl, line 115: Singleton variable Author2
+q3_collab.pl compiled 10008 bytes in 0.00 seconds
+
+Yes (0.03s cpu)
+[eclipse 2]: 
+
+
+%%%%% QUERY 1
+[eclipse 6]: collabDist('james', 'alex', 1).
+
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+No (0.00s cpu)
+
+%%%%% QUERY 2
+[eclipse 2]: collabDistWithAI('jennifer', 'mark', 1, at_least_one).
+
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+No (0.00s cpu)
+
+%%%%% QUERY 3
+[eclipse 3]: collabDist('james', 'paul', 2).
+
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+No (0.00s cpu)
+
+%%%%% QUERY 4
+[eclipse 6]: collabDistWithAI('james', 'jennifer', 2, at_least_one).
+
+No (0.00s cpu)
+
+%%%%% QUERY 5
+[eclipse 7]: collabDistWithAI('eve', 'alice', 2, none).
+
+No (0.00s cpu)
+
+%%%%% QUERY 6
+
+[eclipse 8]: collabDist('james', 'george', 3).
+
+No (0.00s cpu)
+
+%%%%% QUERY 7
+
+[eclipse 11]: collabDist('george', X, 2).
+
+X = george
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+X = helen
+Yes (0.00s cpu, solution 2, maybe more) ? ;
+
+X = jennifer
+Yes (0.00s cpu, solution 3, maybe more) ? ;
+
+X = helen
+Yes (0.00s cpu, solution 4, maybe more) ? ;
+
+X = george
+Yes (0.00s cpu, solution 5, maybe more) ? ;
+
+X = jennifer
+Yes (0.00s cpu, solution 6, maybe more) ? ;
+
+X = jennifer
+Yes (0.00s cpu, solution 7, maybe more) ? ;
+
+X = jennifer
+Yes (0.00s cpu, solution 8, maybe more) ? ;
+
+X = peter
+Yes (0.00s cpu, solution 9, maybe more) ? ;
+
+X = mark
+Yes (0.00s cpu, solution 10, maybe more) ? ;
+
+X = dave
+Yes (0.00s cpu, solution 11, maybe more) ? ;
+
+X = george
+Yes (0.00s cpu, solution 12, maybe more) ? ;
+
+X = helen
+Yes (0.00s cpu, solution 13, maybe more) ? ;
+
+No (0.00s cpu)
+
+%%%%% QUERY 8
+[eclipse 12]: collabDistWithAI('james', 'peter', 3, at_least_one).
+
+No (0.00s cpu)
+
+%%%%% QUERY 9
+[eclipse 14]: collabDistWithAI('alice', X, 2, at_least_one).        
+
+X = jennifer
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+X = peter
+Yes (0.00s cpu, solution 2, maybe more) ? ;
+
+X = dave
+Yes (0.00s cpu, solution 3, maybe more) ? ;
+
+No (0.00s cpu)
+
+%%%%% QUERY 10
+[eclipse 2]: collabDistWithAI(X, 'mark', 3, none).
+
+X = alice
+Yes (0.00s cpu, solution 1, maybe more) ? ;
+
+X = frank
+Yes (0.00s cpu, solution 2, maybe more) ? ;
+
+X = alice
+Yes (0.00s cpu, solution 3, maybe more) ? ;
+
+X = alice
+Yes (0.00s cpu, solution 4, maybe more) ? ;
+
+X = alice
+Yes (0.00s cpu, solution 5, maybe more) ? ;
+
+X = alice
+Yes (0.00s cpu, solution 6, maybe more) ? ;
+
+X = frank
+Yes (0.00s cpu, solution 7, maybe more) ? ;
+
+X = frank
+Yes (0.00s cpu, solution 8, maybe more) ? ;
+
+X = frank
+Yes (0.00s cpu, solution 9, maybe more) ? ;
+
+X = frank
+Yes (0.00s cpu, solution 10, maybe more) ? ;
+
+X = mark
+Yes (0.00s cpu, solution 11, maybe more) ? ;
+
+X = mark
+Yes (0.00s cpu, solution 12, maybe more) ? ;
+
+X = mark
+Yes (0.00s cpu, solution 13, maybe more) ? ;
+
+X = mark
+Yes (0.00s cpu, solution 14, maybe more) ? ;
+
+No (0.00s cpu)
+
+
+
+
